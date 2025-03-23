@@ -68,17 +68,6 @@ def handle_message():
 def clear():
     return clear_chat()
     
-
-@app.route('/api/monitor', methods=['GET'])
-def monitor_progress():
-    def generate():
-        try:
-            for progress in start_monitoring():
-                yield f"data: {progress}\n\n"  # Server-Sent Events (SSE) format
-        except Exception as e:
-            yield f"data: Error: {str(e)}\n\n"
-
-    return Response(generate(), content_type='text/event-stream')
     
 @app.route('/api/upload', methods=['POST'])
 def upload_file():

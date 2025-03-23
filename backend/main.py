@@ -11,6 +11,7 @@ import re
 import numpy as np
 from datetime import timedelta
 from per import monitor_folder_and_video
+from PIL import Image,ImageOps,ImageEnhance
 
 def start_monitoring():
     folder_path = "./runs/detect/track/video_frames"
@@ -47,8 +48,12 @@ def process_video(file_path):
 
     # Function to preprocess the image for OCR
     def preprocess_image(image):
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        return gray
+        pil_image = Image.fromarray(image)
+        gray_image = ImageOps.grayscale(pil_image)
+       
+        enhancer = ImageEnhance.Contrast(gray_image)
+        enhanced_image = enhancer.enhance(2.5)  # Adjust the factor as needed
+        return np.array(enhanced_image)
 
     # Function to perform OCR on bounding boxes
     def segment_characters(image):
@@ -122,6 +127,11 @@ def process_video(file_path):
 
     # Function to write OCR results to a CSV file with timestamps
     def write_results_to_csv(results, output_file, fps):
+        valid_prefixes = {
+        "AN", "AP", "AR", "AS", "BR", "CH", "CG", "DN", "DD", "DL", "GA", "GJ", "HR", "HP", 
+        "JK", "JH", "KA", "KL", "LA", "LD", "MP", "MH", "MN", "ML", "MZ", "NL", "OD", "OR", 
+        "PY", "PB", "RJ", "SK", "TN", "TS", "TR", "UP", "UK", "WB", "TG"
+    }
         written_plates=set()
         with open(output_file, mode='w', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
@@ -131,7 +141,7 @@ def process_video(file_path):
             for frame_number, texts in results.items():
                 timestamp = calculate_timestamp(int(frame_number), fps)
                 for text in texts:
-                    if text not in written_plates:
+                    if text[:2] in valid_prefixes and text not in written_plates:
                         writer.writerow([frame_number, timestamp, text])
                         written_plates.add(text)
 

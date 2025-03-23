@@ -10,7 +10,9 @@ export default function Home() {
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
   const chatEndRef = useRef(null);
-  const [progress, setProgress] = useState(""); // State to store progress updates
+  const [progress, setProgress] = useState("");
+  const [videoSrc, setVideoSrc] = useState("");
+  const [isFileUploaded, setIsFileUploaded] = useState(false);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return; // Prevent sending if already loading
@@ -68,51 +70,35 @@ export default function Home() {
   const handleFileUpload = async (event) => {
     const file = fileInputRef.current.files[0];
     if (!file) return;
-
+  
     const formData = new FormData();
     formData.append("file", file);
-
+  
     try {
       const response = await fetch("http://127.0.0.1:5000/api/upload", {
         method: "POST",
         body: formData,
       });
-
+  
       if (!response.ok) {
         throw new Error("Failed to upload file");
       }
-
+  
       const data = await response.json(); // Read the response body once
       const filePath = data.file_path;
-
+  
       // Display the file path in the UI
       document.getElementById("filePathDisplay").textContent = `${filePath}`;
-
+  
       console.log("File uploaded successfully:", data);
+  
+      setIsFileUploaded(true);
+      setVideoSrc("http://127.0.0.1:5000/runs/detect/track/video.avi");
+
     } catch (error) {
       console.error("Error uploading file:", error);
     }
   };
-
-  //to display the progress bar
-  useEffect(() => {
-    // Establish an EventSource connection to the backend
-    const eventSource = new EventSource("http://127.0.0.1:5000/api/monitor");
-
-    eventSource.onmessage = (event) => {
-      setProgress(event.data); // Update progress state with the received data
-    };
-
-    eventSource.onerror = () => {
-      console.error("Error connecting to the progress monitor.");
-      eventSource.close(); // Close the connection on error
-    };
-
-    // Cleanup the EventSource connection when the component unmounts
-    return () => {
-      eventSource.close();
-    };
-  }, []);
 
   return (
     <div className="flex flex-row max-lg:flex-col items-center justify-between h-screen bg-gray-900 text-gray-100">
@@ -136,6 +122,7 @@ export default function Home() {
               if (fileInputRef.current) {
                 fileInputRef.current.value = null;
               }
+              window.location.reload();
             } catch (error) {
               console.error("Error clearing chat:", error);
             }
@@ -209,13 +196,13 @@ export default function Home() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            disabled={loading} // Disable input when loading
+            disabled={loading || !isFileUploaded} // Disable input when loading
           />
           {input.trim() && (
             <button
               onClick={sendMessage}
               className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
-              disabled={loading} // Disable button when loading
+              disabled={loading || !isFileUploaded} // Disable button when loading
             >
               {loading ? "Sending..." : "Send"}
             </button>
@@ -223,23 +210,15 @@ export default function Home() {
         </div>
       </div>
       <div className="w-110 h-full bg-gray-800 rounded-xl">
-        {/* <iframe
-          src=""
-          title="YouTube video player"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="w-full h-61 rounded-lg mt-4"
-        ></iframe> */}
-        <video className="w-full h-auto" controls>
-          <source
-            src="http://127.0.0.1:5000/uploads/video.mp4"
-            type="video/mp4"
-          ></source>
-          Your browser does not support the video tag.
-        </video>
-        <div className=" text-center bg-gray-700 text-white p-2">
-          {progress}
-        </div>
+        {isFileUploaded && videoSrc && ( // Conditionally render the video element
+          <video className="w-full h-auto" controls>
+            <source
+              src={videoSrc} 
+              type="video/mp4"
+            ></source>
+            Your browser does not support the video tag.
+          </video>
+        )}
         <h1 className="text-xl text-center text-white p-4">Video Analytics</h1>
         <div className="flex flex-col p-4">
           <span>
