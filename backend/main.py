@@ -45,6 +45,29 @@ def process_video(file_path):
         os.makedirs(frames_dir)
     if not os.path.exists(labels_dir):
         os.makedirs(labels_dir)
+    avi_output_path = os.path.join(run_dir, "video.avi")
+    mp4_output_path = os.path.join(run_dir, "video.mp4")
+    def convert_to_mp4(avi_path, mp4_path):
+        try:
+            import subprocess
+            command = [
+                "ffmpeg",
+                "-i", avi_path,
+                "-vcodec", "libx264",
+                "-crf", "23",
+                "-preset", "medium",
+                mp4_path
+            ]
+            subprocess.run(command, check=True)
+            print(f"Converted {avi_path} to {mp4_path}")
+        except Exception as e:
+            print(f"Error converting video: {e}")
+        if os.path.exists(avi_output_path):
+            convert_to_mp4(avi_output_path, mp4_output_path)
+        else:
+            print(f"AVI output video not found at {avi_output_path}")
+
+        return mp4_output_path
 
     # Function to preprocess the image for OCR
     def preprocess_image(image):
