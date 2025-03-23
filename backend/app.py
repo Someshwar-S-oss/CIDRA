@@ -1,12 +1,9 @@
 
-from flask import Flask, send_file, request, jsonify
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import ollama
-import re
-import os
-from flask import Response
 from llm.llm import create_message, chat_messages, system_data
-from utils.database import execute_sql_query, clear_chat, database_operations
+from utils.database import execute_sql_query
 
 app = Flask(__name__)
 CORS(app)
