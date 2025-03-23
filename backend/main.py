@@ -8,6 +8,7 @@ import easyocr
 import os
 import csv
 import re
+import subprocess
 import numpy as np
 from datetime import timedelta
 from per import monitor_folder_and_video
@@ -47,27 +48,30 @@ def process_video(file_path):
         os.makedirs(labels_dir)
     avi_output_path = os.path.join(run_dir, "video.avi")
     mp4_output_path = os.path.join(run_dir, "video.mp4")
-    def convert_to_mp4(avi_path, mp4_path):
+    def convert_avi_to_mp4(input_folder, input_filename, output_filename):
+        input_path = os.path.join(input_folder, input_filename)
+        output_path = os.path.join(input_folder, output_filename)
+
+        if not os.path.exists(input_path):
+            print(f"Error: File '{input_path}' does not exist.")
+            return
+
         try:
-            import subprocess
+            # Run ffmpeg command to convert AVI to MP4
             command = [
                 "ffmpeg",
-                "-i", avi_path,
-                "-vcodec", "libx264",
-                "-crf", "23",
-                "-preset", "medium",
-                mp4_path
+                "-i", input_path,  # Input file
+                "-c:v", "libx264",  # Video codec
+                "-preset", "fast",  # Encoding speed
+                "-crf", "23",  # Quality (lower is better, 23 is default)
+                output_path  # Output file
             ]
             subprocess.run(command, check=True)
-            print(f"Converted {avi_path} to {mp4_path}")
-        except Exception as e:
-            print(f"Error converting video: {e}")
-        if os.path.exists(avi_output_path):
-            convert_to_mp4(avi_output_path, mp4_output_path)
-        else:
-            print(f"AVI output video not found at {avi_output_path}")
+            print(f"Conversion successful! MP4 file saved at: {output_path}")
+        except subprocess.CalledProcessError as e:
+            print(f"An error occurred during conversion: {e}")
+    convert_avi_to_mp4(run_dir, "video.avi", "video.mp4")
 
-        return mp4_output_path
 
     # Function to preprocess the image for OCR
     def preprocess_image(image):

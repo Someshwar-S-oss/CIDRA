@@ -1,5 +1,5 @@
 
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
 from detect.vehicle import run_vehicle_detection
 import ollama
@@ -67,6 +67,10 @@ def handle_message():
 @app.route('/api/clear', methods=['POST'])
 def clear():
     return clear_chat()
+
+@app.route('/runs/detect/track/<path:filename>')
+def serve_detected_video(filename):
+    return send_from_directory('runs/detect/track',filename)
     
     
 @app.route('/api/upload', methods=['POST'])
@@ -89,7 +93,7 @@ def upload_file():
         file.save(file_path)
         print("File saved to:", file_path)
 
-        # Send the video file for processing
+        # # Send the video file for processing
         try:
             print("Processing video...")
             result = process_video(file_path)
@@ -98,14 +102,14 @@ def upload_file():
             print(f"Error processing video: {e}")
             return jsonify({"error": f"Error processing video: {str(e)}"}), 500
 
-        # Process database operations
-        try:
-            print("Processing database operations...")
-            database_operations("./ocr_results_with_timestamps.csv")
-            print("Database operations completed.")
-        except Exception as e:
-            print(f"Error processing database operations: {e}")
-            return jsonify({"error": f"Error processing database operations: {str(e)}"}), 500
+        # Process database operations( only for the final video)
+        # try:
+        #     print("Processing database operations...")
+        #     database_operations("./ocr_results_with_timestamps.csv")
+        #     print("Database operations completed.")
+        # except Exception as e:
+        #     print(f"Error processing database operations: {e}")
+        #     return jsonify({"error": f"Error processing database operations: {str(e)}"}), 500
 
         return jsonify({"message": "File uploaded successfully", "file_path": os.path.basename(file_path)}), 200
     except Exception as e:

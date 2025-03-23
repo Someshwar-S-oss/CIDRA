@@ -96,7 +96,7 @@ export default function Home() {
       console.log("File uploaded successfully:", data);
 
       setIsFileUploaded(true);
-      setVideoSrc("http://127.0.0.1:5000/runs/detect/track/video.avi");
+      setVideoSrc("http://127.0.0.1:5000/runs/detect/track/video.mp4");
 
       setPlaceholder("Type your message..."); // Update placeholder after processing is complete
     } catch (error) {
@@ -216,15 +216,12 @@ export default function Home() {
         </div>
       </div>
       <div className="w-110 h-full bg-gray-800 rounded-xl">
-        {isFileUploaded && videoSrc && ( // Conditionally render the video element
-          <video className="w-full h-auto" controls>
-            <source
-              src={videoSrc} 
-              type="video/avi"
-            ></source>
-            Your browser does not support the video tag.
-          </video>
-        )}
+        {isFileUploaded && videoSrc && ( 
+            <video className="w-full h-auto" controls>
+              <source src={videoSrc} type="video/mp4"></source>
+              Your browser does not support the video tag.
+            </video>
+          )}
         <h1 className="text-xl text-center text-white p-4">Video Analytics</h1>
         <div className="flex flex-col p-4">
           <span>

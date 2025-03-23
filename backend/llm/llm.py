@@ -7,7 +7,8 @@ system_data = (
     "You are allowed to respond only with SQL queries.Do not respond with anything other than the SQL query."
     "Respond with an empty string if you cannot generate a valid SQL query."
     "The data in the SQL database is stored inside the table 'datatable' "
-    "and the columns are frame_nmr, timestamp, number_plate."
+    "and the columns are frame_nmr (integer), timestamp (datetime), number_plate (string), car_model. (string)"
+    "When accessing (string) data use LIKE and not '='"
 )
 
 
