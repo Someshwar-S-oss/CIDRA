@@ -1,14 +1,16 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown"; // Import react-markdown
-import remarkGfm from "remark-gfm"; // Import plugin for GitHub-flavored Markdown (optional)
+import remarkGfm from "remark-gfm"; // Import plugin for GitHub-flavored Markdown
 
 export default function Home() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false); // New loading state
-  const inputRef = useRef(null); // Reference to the input element
-  const chatEndRef = useRef(null); // Reference to the end of the chat container
+  const [loading, setLoading] = useState(false);
+  const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const chatEndRef = useRef(null);
+  const [progress, setProgress] = useState(""); // State to store progress updates
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return; // Prevent sending if already loading
@@ -63,14 +65,113 @@ export default function Home() {
     }
   }, [messages]);
 
+  const handleFileUpload = async (event) => {
+    const file = fileInputRef.current.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      const data = await response.json(); // Read the response body once
+      const filePath = data.file_path;
+
+      // Display the file path in the UI
+      document.getElementById("filePathDisplay").textContent = `${filePath}`;
+
+      console.log("File uploaded successfully:", data);
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    }
+  };
+
+  //to display the progress bar
+  useEffect(() => {
+    // Establish an EventSource connection to the backend
+    const eventSource = new EventSource("http://127.0.0.1:5000/api/monitor");
+
+    eventSource.onmessage = (event) => {
+      setProgress(event.data); // Update progress state with the received data
+    };
+
+    eventSource.onerror = () => {
+      console.error("Error connecting to the progress monitor.");
+      eventSource.close(); // Close the connection on error
+    };
+
+    // Cleanup the EventSource connection when the component unmounts
+    return () => {
+      eventSource.close();
+    };
+  }, []);
+
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-gray-100">
-      <div className="w-full max-w-2xl flex flex-col h-4/5 bg-gray-800 shadow-lg rounded-lg overflow-hidden">
+    <div className="flex flex-row max-lg:flex-col items-center justify-between h-screen bg-gray-900 text-gray-100">
+      <div className="w-80 h-full bg-gray-800 shadow-lg rounded-xl p-4 flex flex-col overflow-hidden items-center">
+        <button
+          className="bg-blue-600 px-4 py-2 rounded-xl hover:bg-blue-700 mb-4"
+          onClick={async () => {
+            try {
+              const response = await fetch("http://127.0.0.1:5000/api/clear", {
+                method: "POST",
+              });
+              if (!response.ok) {
+                throw new Error("Failed to clear chat");
+              }
+              setMessages([]); // Clear the messages in the frontend
+
+              // Clear the file name displayed in the UI
+              document.getElementById("filePathDisplay").textContent = "";
+
+              // Reset the file input field
+              if (fileInputRef.current) {
+                fileInputRef.current.value = null;
+              }
+            } catch (error) {
+              console.error("Error clearing chat:", error);
+            }
+          }}
+        >
+          New Chat +
+        </button>
+        <div className="w-full mt-25 h-10 mb-16">
+          <label
+            htmlFor="example1"
+            className="mb-1 block text-md font-medium text-center text-gray-100"
+          >
+            Upload file
+          </label>
+          <input
+            id="example1"
+            type="file"
+            ref={fileInputRef}
+            className="p-3 rounded-md mt-2 block w-full text-sm text-black bg-gray-700 file:mr-4 file:rounded-md file:border-0 file:bg-blue-600 file:py-2 file:px-4 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-800 focus:outline-none disabled:pointer-events-none disabled:opacity-60"
+          />
+        </div>
+        <button
+          className="bg-blue-600 px-4 py-2 rounded-xl hover:bg-blue-700 mb-4"
+          onClick={handleFileUpload}
+        >
+          Upload
+        </button>
+      </div>
+
+      {/* Chatbox */}
+      <div className="w-full max-w-2xl flex flex-col h-4/5 bg-gray-800 shadow-lg rounded-xl overflow-hidden">
         <div className="flex-1 p-4 overflow-y-auto space-y-4 flex flex-col">
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`inline-block max-w-[75%] p-3 rounded-lg ${
+              className={`inline-block max-w-[75%] p-3 rounded-xl ${
                 msg.role === "user"
                   ? "bg-blue-600 text-white self-end"
                   : msg.role === "assistant"
@@ -79,13 +180,19 @@ export default function Home() {
               }`}
             >
               {/* Render Markdown content */}
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {msg.content}
+              </ReactMarkdown>
             </div>
           ))}
           {/* Typing Indicator */}
           {loading && (
             <div className="inline-block max-w-[75%] p-3 rounded-lg bg-gray-700 text-gray-100 self-start">
-              Typing...
+              <span className="typing-dots">
+                <span>.</span>
+                <span>.</span>
+                <span>.</span>
+              </span>
             </div>
           )}
           {/* Scroll Anchor */}
@@ -113,6 +220,32 @@ export default function Home() {
               {loading ? "Sending..." : "Send"}
             </button>
           )}
+        </div>
+      </div>
+      <div className="w-110 h-full bg-gray-800 rounded-xl">
+        {/* <iframe
+          src=""
+          title="YouTube video player"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="w-full h-61 rounded-lg mt-4"
+        ></iframe> */}
+        <video className="w-full h-auto" controls>
+          <source
+            src="http://127.0.0.1:5000/uploads/video.mp4"
+            type="video/mp4"
+          ></source>
+          Your browser does not support the video tag.
+        </video>
+        <div className=" text-center bg-gray-700 text-white p-2">
+          {progress}
+        </div>
+        <h1 className="text-xl text-center text-white p-4">Video Analytics</h1>
+        <div className="flex flex-col p-4">
+          <span>
+            File Name: <span id="filePathDisplay"></span>
+          </span>
+          {/* <span>{progress}</span> */}
         </div>
       </div>
     </div>

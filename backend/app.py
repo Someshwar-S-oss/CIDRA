@@ -2,8 +2,9 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import ollama
+import os
 from llm.llm import create_message, chat_messages, system_data
-from utils.database import execute_sql_query
+from utils.database import execute_sql_query, clear_chat, database_operations
 
 app = Flask(__name__)
 CORS(app)
@@ -59,6 +60,66 @@ def handle_message():
     except Exception as e:
         print(f"Error handling message: {e}")
         return jsonify({"error": "Internal server error"}), 500
+    
+
+@app.route('/api/clear', methods=['POST'])
+def clear():
+    return clear_chat()
+    
+
+# @app.route('/api/monitor', methods=['GET'])
+# def monitor_progress():
+#     def generate():
+#         try:
+#             for progress in start_monitoring():
+#                 yield f"data: {progress}\n\n"  # Server-Sent Events (SSE) format
+#         except Exception as e:
+#             yield f"data: Error: {str(e)}\n\n"
+
+#     return Response(generate(), content_type='text/event-stream')
+    
+@app.route('/api/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in the request"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    try:
+        # Ensure UPLOAD_FOLDER is configured
+        app.config['UPLOAD_FOLDER'] = 'uploads'
+        if not os.path.exists(app.config['UPLOAD_FOLDER']):
+            os.makedirs(app.config['UPLOAD_FOLDER'])
+
+        # Save the file to the upload folder
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], "video.mp4")
+        file.save(file_path)
+        print("File saved to:", file_path)
+
+        # Send the video file for processing
+        try:
+            print("Processing video...")
+            result = process_video(file_path)
+            print("Video processed. Result:", result)
+        except Exception as e:
+            print(f"Error processing video: {e}")
+            return jsonify({"error": f"Error processing video: {str(e)}"}), 500
+
+        # Process database operations
+        try:
+            print("Processing database operations...")
+            database_operations("./ocr_results_with_timestamps.csv")
+            print("Database operations completed.")
+        except Exception as e:
+            print(f"Error processing database operations: {e}")
+            return jsonify({"error": f"Error processing database operations: {str(e)}"}), 500
+
+        return jsonify({"message": "File uploaded successfully", "file_path": os.path.basename(file_path)}), 200
+    except Exception as e:
+        print(f"Error uploading file: {e}")
+        return jsonify({"error": f"Failed to upload file: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)
