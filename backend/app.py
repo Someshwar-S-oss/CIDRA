@@ -1,6 +1,7 @@
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from detect.vehicle import run_vehicle_detection
 import ollama
 import os
 from llm.llm import create_message, chat_messages, system_data

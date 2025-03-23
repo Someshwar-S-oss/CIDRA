@@ -11,11 +11,13 @@ BITS-TechXcelerate Hackathon Project
 
 ### Installation
 
-1. Run install.bat
+1. Edit config.txt and set Miniconda path
+2. Run install.bat
 
 ### Run the environment
 
 1. Run start.bat
 
 ### Hardware Requirements
+
 - Dedicated GPU with minimum 8GB VRAM
