@@ -2,6 +2,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from llm.llm import chat_messages, create_message
+from detect.vehicle import run_vehicle_detection
 import ollama
 
 app = Flask(__name__)
@@ -41,6 +42,8 @@ def handle_message():
     except Exception as e:
         print(f"Error handling message: {e}")
         return jsonify({"error": "Internal server error"}), 500
+        
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)
+    run_vehicle_detection()
