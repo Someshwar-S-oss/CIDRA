@@ -7,6 +7,7 @@ export default function Home() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [placeholder, setPlaceholder] = useState("Upload video"); // State for placeholder text
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -70,33 +71,37 @@ export default function Home() {
   const handleFileUpload = async (event) => {
     const file = fileInputRef.current.files[0];
     if (!file) return;
-  
+
+    setPlaceholder("Processing the video..."); // Update placeholder to indicate processing
+
     const formData = new FormData();
     formData.append("file", file);
-  
+
     try {
       const response = await fetch("http://127.0.0.1:5000/api/upload", {
         method: "POST",
         body: formData,
       });
-  
+
       if (!response.ok) {
         throw new Error("Failed to upload file");
       }
-  
+
       const data = await response.json(); // Read the response body once
       const filePath = data.file_path;
-  
+
       // Display the file path in the UI
       document.getElementById("filePathDisplay").textContent = `${filePath}`;
-  
+
       console.log("File uploaded successfully:", data);
-  
+
       setIsFileUploaded(true);
       setVideoSrc("http://127.0.0.1:5000/runs/detect/track/video.avi");
 
+      setPlaceholder("Type your message..."); // Update placeholder after processing is complete
     } catch (error) {
       console.error("Error uploading file:", error);
+      setPlaceholder("Upload video"); // Reset placeholder on error
     }
   };
 
@@ -122,6 +127,7 @@ export default function Home() {
               if (fileInputRef.current) {
                 fileInputRef.current.value = null;
               }
+              setPlaceholder("Upload video"); // Reset placeholder
               window.location.reload();
             } catch (error) {
               console.error("Error clearing chat:", error);
@@ -192,7 +198,7 @@ export default function Home() {
             ref={inputRef} // Attach the ref to the input element
             type="text"
             className="flex-1 p-2 bg-gray-700 text-gray-100 border border-gray-600 rounded-lg focus:outline-none focus:ring focus:ring-blue-500"
-            placeholder="Type your message..."
+            placeholder={placeholder} // Use dynamic placeholder
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
@@ -214,7 +220,7 @@ export default function Home() {
           <video className="w-full h-auto" controls>
             <source
               src={videoSrc} 
-              type="video/mp4"
+              type="video/avi"
             ></source>
             Your browser does not support the video tag.
           </video>
