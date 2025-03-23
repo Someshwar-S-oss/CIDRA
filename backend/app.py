@@ -1,11 +1,12 @@
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from detect.vehicle import run_vehicle_detection
 import ollama
 import os
 from llm.llm import create_message, chat_messages, system_data
 from utils.database import execute_sql_query, clear_chat, database_operations
+from main import start_monitoring, process_video
 
 app = Flask(__name__)
 CORS(app)
@@ -68,16 +69,16 @@ def clear():
     return clear_chat()
     
 
-# @app.route('/api/monitor', methods=['GET'])
-# def monitor_progress():
-#     def generate():
-#         try:
-#             for progress in start_monitoring():
-#                 yield f"data: {progress}\n\n"  # Server-Sent Events (SSE) format
-#         except Exception as e:
-#             yield f"data: Error: {str(e)}\n\n"
+@app.route('/api/monitor', methods=['GET'])
+def monitor_progress():
+    def generate():
+        try:
+            for progress in start_monitoring():
+                yield f"data: {progress}\n\n"  # Server-Sent Events (SSE) format
+        except Exception as e:
+            yield f"data: Error: {str(e)}\n\n"
 
-#     return Response(generate(), content_type='text/event-stream')
+    return Response(generate(), content_type='text/event-stream')
     
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
